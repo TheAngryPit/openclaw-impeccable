@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/pbakaus/impeccable",
+  "commit": "b49177d32788f2dc585c42831d845dacf1ebed2c",
+  "skillVersion": "4.10.0",
+  "engineVersion": "0.1.27",
+  "license": "Apache-2.0",
+  "generatedBy": "scripts/sync-upstream.mjs"
+}

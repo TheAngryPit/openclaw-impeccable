@@ -1,0 +1,64 @@
+{
+  "name": "@theangrypit/openclaw-impeccable",
+  "version": "4.10.0-openclaw.1",
+  "description": "Unofficial community OpenClaw plugin for Impeccable: the frontend design skill (24 commands), detector tools and a native design gate",
+  "license": "Apache-2.0",
+  "author": "Vitor Cepeda Lopes (TheAngryPit)",
+  "homepage": "https://github.com/TheAngryPit/openclaw-impeccable#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheAngryPit/openclaw-impeccable.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TheAngryPit/openclaw-impeccable/issues"
+  },
+  "keywords": [
+    "openclaw",
+    "openclaw-plugin",
+    "impeccable",
+    "design",
+    "frontend",
+    "ui",
+    "ux",
+    "accessibility",
+    "skills"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=24.16.0 <25 || >=26.1.0"
+  },
+  "files": [
+    "index.mjs",
+    "src",
+    "skills",
+    "openclaw.plugin.json",
+    "UPSTREAM.json",
+    "README.md",
+    "LICENSE",
+    "NOTICE.md",
+    "licenses"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "sync": "node scripts/sync-upstream.mjs"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.11.6"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.mjs"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.11.6",
+      "minGatewayVersion": "2026.11.6"
+    },
+    "install": {
+      "minHostVersion": ">=2026.11.6"
+    },
+    "build": {
+      "openclawVersion": "2026.11.6",
+      "pluginSdkVersion": "2026.11.6"
+    }
+  }
+}

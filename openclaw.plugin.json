@@ -1,0 +1,117 @@
+{
+  "id": "impeccable",
+  "name": "Impeccable for OpenClaw (unofficial)",
+  "description": "Unofficial community port of Impeccable (impeccable.style): the frontend design skill with 24 commands, detector tools and a native anti-pattern design gate.",
+  "categories": [
+    "developer-tools"
+  ],
+  "skills": [
+    "./skills/impeccable"
+  ],
+  "activation": {
+    "onStartup": true
+  },
+  "cliCommands": [
+    {
+      "name": "impeccable",
+      "description": "Impeccable design skill: engine setup, project hook switch, detector",
+      "hasSubcommands": true
+    }
+  ],
+  "contracts": {
+    "tools": [
+      "impeccable_context",
+      "impeccable_detect"
+    ],
+    "agentToolResultMiddleware": [
+      "openclaw",
+      "codex",
+      "agentsapi"
+    ],
+    "conversationAccess": [
+      "read"
+    ]
+  },
+  "toolMetadata": {
+    "impeccable_context": {
+      "profiles": [
+        "coding",
+        "full"
+      ]
+    },
+    "impeccable_detect": {
+      "profiles": [
+        "coding",
+        "full"
+      ],
+      "replaySafe": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "gate": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "The design gate runs the engine's hook after UI edits. A project opts in with `/impeccable hooks on`; these switches only bound what the plugin may do.",
+        "properties": {
+          "perEdit": {
+            "type": "boolean",
+            "default": true,
+            "description": "Append detector findings to write/edit/apply_patch results for UI files (upstream PostToolUse)."
+          },
+          "onFinish": {
+            "type": "boolean",
+            "default": true,
+            "description": "Run the deep pass before a run that edited files finishes, and request a revision on findings (upstream Stop). Needs hooks.allowConversationAccess."
+          },
+          "maxRevisions": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3,
+            "default": 1,
+            "description": "Extra model passes the deep pass may request per run. The embedded runner caps all plugins at three."
+          }
+        }
+      },
+      "tools": {
+        "type": "boolean",
+        "default": true,
+        "description": "Register impeccable_context and impeccable_detect."
+      },
+      "install": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "bundled"
+        ],
+        "default": "auto",
+        "description": "auto: when a regular Impeccable install (e.g. ~/.agents/skills/impeccable) is the copy OpenClaw serves, run that copy's own launcher so the skill text and engine version match. bundled: always run this plugin's copy."
+      },
+      "trustProjectInstalls": {
+        "type": "boolean",
+        "default": false,
+        "description": "Let the gate and tools run the launcher of a project-level install (<workspace>/.agents/skills/impeccable or <workspace>/skills/impeccable). Off by default: a project launcher is repository code."
+      },
+      "engineBin": {
+        "type": "string",
+        "description": "Absolute path to a preinstalled impeccable engine binary (sets IMPECCABLE_BIN). Leave unset to use the checksum-verified cache from `openclaw impeccable engine install`."
+      },
+      "editTimeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 30000,
+        "default": 5000,
+        "description": "Per-file budget for the per-edit pass."
+      },
+      "stopTimeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 120000,
+        "default": 30000,
+        "description": "Budget for the deep pass before finishing."
+      }
+    }
+  }
+}
