@@ -133,6 +133,14 @@ The generator reproduces upstream's per-provider build (`compileProviderBlocks`,
 upstream code. At commit `b49177d` its output matches upstream's own generic build
 apart from the provider values: scripts path and ask-tool phrasing.
 
+### Versioning
+
+The major and minor numbers follow upstream: 4.10.x bundles Impeccable 4.10.
+The patch number is the plugin's own and goes up with each release, so it can run
+ahead of upstream's patch. `UPSTREAM.json` records the exact upstream commit, skill
+version and engine pin. The early `4.10.0-openclaw.N` releases used the same
+content; a plain `4.10.0` sorts above them, so `openclaw plugins update` moves forward.
+
 ## Development
 
 ```bash
