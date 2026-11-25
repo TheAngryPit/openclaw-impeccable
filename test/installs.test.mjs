@@ -173,3 +173,13 @@ test("plugin wiring: an untrusted project launcher is never executed", async () 
   assert.ok(calls.every((l) => l.startsWith(SKILL_DIR)));
   assert.equal(fs.existsSync(marker), false);
 });
+
+test("install: bundled runs the plugin's launcher even when a trusted user install is served", () => {
+  const { home, workspace, env } = sandbox();
+  fakeInstall(path.join(home, ".agents", "skills", "impeccable"), { name: "user" });
+  const installs = discoverInstalls({ workspaceDir: workspace, home, env });
+  const sel = selectInstall(installs, resolveConfig({ install: "bundled" }));
+  assert.equal(sel.served.scope, "user");
+  assert.equal(sel.engineInstall.scope, "plugin");
+  assert.equal(selectInstall(installs, resolveConfig({})).engineInstall.scope, "user");
+});

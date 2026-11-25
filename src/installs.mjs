@@ -72,9 +72,9 @@ export function discoverOtherHarnessInstalls({ home = os.homedir() } = {}) {
   return OTHER_HARNESS_DIRS.map((dir) => describe(path.join(home, dir, "skills", "impeccable"), `user:${dir}`)).filter(Boolean);
 }
 
-export function selectInstall(installs, { mode = "auto", trustProjectInstalls = false } = {}) {
+export function selectInstall(installs, { install = "auto", trustProjectInstalls = false } = {}) {
   const served = installs[0];
-  if (mode === "bundled") return { served, engineInstall: BUNDLED_INSTALL, reason: "install=bundled" };
+  if (install === "bundled") return { served, engineInstall: BUNDLED_INSTALL, reason: "install=bundled" };
   if (mayRunLauncher(served, { trustProjectInstalls })) {
     return { served, engineInstall: served, reason: served === BUNDLED_INSTALL ? "plugin copy is served" : `${served.scope} install is served` };
   }
