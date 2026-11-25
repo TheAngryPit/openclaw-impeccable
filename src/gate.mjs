@@ -2,8 +2,8 @@ import { EDIT_TOOLS, editedPaths } from "./edits.mjs";
 import { engineEnv, parseHookOutput, runEngine } from "./engine.mjs";
 
 const TOOL_EVENT_NAME = { write: "Write", edit: "Edit", apply_patch: "Edit" };
-const PENDING_MAX = 512;
-const PENDING_TTL_MS = 6 * 60 * 60 * 1000;
+const EDITED_SESSIONS_MAX = 512;
+const EDITED_SESSION_TTL_MS = 6 * 60 * 60 * 1000;
 
 export const REVISE_INSTRUCTION =
   "Triage the Impeccable design findings above as their instructions say (fix real problems; persist the narrowest ignore for a confident false positive and disclose it), then finish and state what you fixed, suppressed, or left standing.";
@@ -13,20 +13,20 @@ function sessionIdentity({ sessionId, sessionKey, runId } = {}) {
 }
 
 export function createDesignGate({ config, engineFor, run = runEngine, logger, now = Date.now }) {
-  const pending = new Map();
+  const editedSessions = new Map();
 
-  function markPending(id, cwd) {
-    pending.delete(id);
-    pending.set(id, { cwd, at: now() });
-    if (pending.size > PENDING_MAX) pending.delete(pending.keys().next().value);
+  function markEdited(id, cwd) {
+    editedSessions.delete(id);
+    editedSessions.set(id, { cwd, at: now() });
+    if (editedSessions.size > EDITED_SESSIONS_MAX) editedSessions.delete(editedSessions.keys().next().value);
   }
 
-  function takePending(ids) {
+  function takeEdited(ids) {
     for (const id of ids) {
-      const entry = id && pending.get(id);
+      const entry = id && editedSessions.get(id);
       if (!entry) continue;
-      for (const other of ids) if (other) pending.delete(other);
-      return now() - entry.at > PENDING_TTL_MS ? undefined : entry;
+      for (const other of ids) if (other) editedSessions.delete(other);
+      return now() - entry.at > EDITED_SESSION_TTL_MS ? undefined : entry;
     }
     return undefined;
   }
@@ -58,8 +58,8 @@ export function createDesignGate({ config, engineFor, run = runEngine, logger, n
       if (paths.length === 0) return;
       const session = sessionIdentity(ctx);
       if (session) {
-        markPending(session, cwd);
-        if (ctx.sessionKey && ctx.sessionKey !== session) markPending(ctx.sessionKey, cwd);
+        markEdited(session, cwd);
+        if (ctx.sessionKey && ctx.sessionKey !== session) markEdited(ctx.sessionKey, cwd);
       }
       if (!config.gate.perEdit) return;
       const engine = await engineFor(cwd);
@@ -100,7 +100,7 @@ export function createDesignGate({ config, engineFor, run = runEngine, logger, n
     try {
       if (!config.gate.onFinish) return;
       const ids = [event.sessionId, ctx.sessionId, event.sessionKey, ctx.sessionKey, event.runId, ctx.runId];
-      const entry = takePending(ids);
+      const entry = takeEdited(ids);
       if (!entry) return;
       const session = sessionIdentity({ sessionId: event.sessionId ?? ctx.sessionId, sessionKey: event.sessionKey ?? ctx.sessionKey, runId: event.runId });
       const cwd = event.cwd?.trim() || ctx.workspaceDir || entry.cwd;

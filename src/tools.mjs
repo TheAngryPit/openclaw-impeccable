@@ -34,7 +34,7 @@ export function installNote(engine) {
   if (served && served.scope !== "plugin") {
     parts.push(`Impeccable ${served.skillVersion ?? "?"} is served from the ${served.scope} install at ${served.skillDir}; its launcher is ${served.skillDir}/scripts/impeccable.`);
   }
-  const skew = describeSkew({ served, engine: engine.install });
+  const skew = describeSkew({ served, engineInstall: engine.install });
   if (skew) parts.push(`Version skew: ${skew}. Run \`openclaw impeccable status\` for details.`);
   return parts.join(" ");
 }

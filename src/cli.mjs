@@ -2,9 +2,11 @@ import path from "node:path";
 import { engineEnv, runEngine } from "./engine.mjs";
 import {
   BUNDLED_INSTALL,
+  createEngineSelector,
   describeSkew,
   discoverInstalls,
   discoverOtherHarnessInstalls,
+  mayRunLauncher,
   selectInstall,
 } from "./installs.mjs";
 
@@ -18,6 +20,7 @@ export function registerImpeccableCli(program, { config, probe, run = runEngine,
     return { installs, selection: selectInstall(installs, config) };
   };
   const envFor = (install) => engineEnv({ engineBin: config.engineBin, install });
+  const engineFor = createEngineSelector({ config, probe, resolveFor: (project) => selectionFor(project).selection });
 
   root
     .command("status")
@@ -28,8 +31,8 @@ export function registerImpeccableCli(program, { config, probe, run = runEngine,
       const { installs, selection } = selectionFor(opts.project);
       const rows = [];
       for (const install of installs) {
-        const mayRun = install.launcher && (install.trusted || config.trustProjectInstalls);
-        const engine = mayRun ? await probe({ install, force: true }) : { ok: false, reason: install.launcher ? "untrusted" : "no launcher" };
+        const mayRun = mayRunLauncher(install, config);
+        const engine = mayRun ? await probe({ install, force: true }) : { ok: false };
         rows.push({ ...install, engineReady: engine.ok, engineVersion: engine.version, probed: Boolean(mayRun) });
       }
       const others = discoverOtherHarnessInstalls();
@@ -37,7 +40,7 @@ export function registerImpeccableCli(program, { config, probe, run = runEngine,
       const status = {
         project: path.resolve(opts.project),
         served: selection.served.skillDir,
-        engineFrom: selection.engine.skillDir,
+        engineFrom: selection.engineInstall.skillDir,
         reason: selection.reason,
         skew,
         installs: rows,
@@ -51,7 +54,7 @@ export function registerImpeccableCli(program, { config, probe, run = runEngine,
       print(`project   ${status.project}`);
       print("OpenClaw-visible Impeccable copies (highest precedence first):");
       for (const r of rows) {
-        const marks = [r === rows[0] && "served", r.skillDir === selection.engine.skillDir && "engine"].filter(Boolean);
+        const marks = [r === rows[0] && "served", r.skillDir === selection.engineInstall.skillDir && "engine"].filter(Boolean);
         print(
           `  ${marks.length ? `[${marks.join("+")}]`.padEnd(16) : "".padEnd(16)}${r.scope.padEnd(9)} ` +
             `skill ${String(r.skillVersion ?? "?").padEnd(8)} engine pin ${String(r.enginePin ?? "?").padEnd(7)} ` +
@@ -72,7 +75,7 @@ export function registerImpeccableCli(program, { config, probe, run = runEngine,
       }
       print(`gate      per-edit ${config.gate.perEdit ? "on" : "off"} · on-finish ${config.gate.onFinish ? "on" : "off"} · max revisions ${config.gate.maxRevisions}`);
       print("          on by default in every project; `/impeccable hooks off` turns it off for one project (.impeccable/config.json, shared with every harness)");
-      if (!rows.find((r) => r.skillDir === selection.engine.skillDir)?.engineReady) {
+      if (!rows.find((r) => r.skillDir === selection.engineInstall.skillDir)?.engineReady) {
         print("          engine missing: run `openclaw impeccable engine install`");
       }
     });
@@ -84,7 +87,7 @@ export function registerImpeccableCli(program, { config, probe, run = runEngine,
     .option("--project <dir>", "Install the engine pinned by the copy the plugin runs for this workspace", process.cwd())
     .option("--bundled", "Install the engine pinned by this plugin's own copy")
     .action(async (opts) => {
-      const install = opts.bundled ? BUNDLED_INSTALL : selectionFor(opts.project).selection.engine;
+      const install = opts.bundled ? BUNDLED_INSTALL : selectionFor(opts.project).selection.engineInstall;
       print(`installing engine ${install.enginePin ?? ""} for the ${install.scope} copy (${install.skillDir})`);
       const r = await run(["engine-probe"], { launcher: install.launcher, cwd: install.skillDir, env: envFor(install), timeoutMs: 300_000 });
       probe.invalidate?.();
@@ -115,16 +118,12 @@ export function registerImpeccableCli(program, { config, probe, run = runEngine,
     .action(async (args, opts) => passthrough(["detect", ...args], opts.project));
 
   async function passthrough(args, cwd) {
-    const { selection } = selectionFor(cwd);
-    let install = selection.engine;
-    if (!(await probe({ install, force: true })).ok) {
-      install = BUNDLED_INSTALL;
-      if (!(await probe({ install, force: true })).ok) {
-        process.exitCode = 1;
-        return print("engine not installed: run `openclaw impeccable engine install`");
-      }
+    const engine = await engineFor(cwd, { force: true });
+    if (!engine.ok) {
+      process.exitCode = 1;
+      return print("engine not installed: run `openclaw impeccable engine install`");
     }
-    const r = await run(args, { launcher: install.launcher, cwd, env: envFor(install), timeoutMs: 300_000 });
+    const r = await run(args, { launcher: engine.install.launcher, cwd, env: envFor(engine.install), timeoutMs: 300_000 });
     if (r.stdout) process.stdout.write(r.stdout);
     if (r.stderr) process.stderr.write(r.stderr);
     if (r.error) print(r.error);

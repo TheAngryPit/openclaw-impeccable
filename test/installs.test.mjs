@@ -79,27 +79,27 @@ test("selectInstall: a user install runs its own launcher; a project install nee
   fakeInstall(path.join(home, ".agents", "skills", "impeccable"), { name: "user" });
   let sel = selectInstall(discoverInstalls({ workspaceDir: workspace, home, env }), resolveConfig({}));
   assert.equal(sel.served.scope, "user");
-  assert.equal(sel.engine.scope, "user");
+  assert.equal(sel.engineInstall.scope, "user");
 
   fakeInstall(path.join(workspace, ".agents", "skills", "impeccable"), { name: "project" });
   const installs = discoverInstalls({ workspaceDir: workspace, home, env });
   sel = selectInstall(installs, resolveConfig({}));
   assert.equal(sel.served.scope, "project");
-  assert.equal(sel.engine.scope, "plugin");
+  assert.equal(sel.engineInstall.scope, "plugin");
   assert.match(sel.reason, /trustProjectInstalls/);
 
   sel = selectInstall(installs, resolveConfig({ trustProjectInstalls: true }));
-  assert.equal(sel.engine.scope, "project");
+  assert.equal(sel.engineInstall.scope, "project");
 
   sel = selectInstall(installs, resolveConfig({ install: "bundled" }));
-  assert.equal(sel.engine.scope, "plugin");
+  assert.equal(sel.engineInstall.scope, "plugin");
   assert.equal(sel.served.scope, "project", "bundled mode cannot change which copy OpenClaw serves");
 });
 
 test("describeSkew flags a served skill whose engine pin differs from the engine in use", () => {
   const served = { scope: "project", skillVersion: "4.12.0", enginePin: "0.1.30" };
-  assert.match(describeSkew({ served, engine: { scope: "plugin", enginePin: "0.1.27" } }), /pins engine 0\.1\.30.*engine 0\.1\.27/);
-  assert.equal(describeSkew({ served, engine: served }), undefined);
+  assert.match(describeSkew({ served, engineInstall: { scope: "plugin", enginePin: "0.1.27" } }), /pins engine 0\.1\.30.*engine 0\.1\.27/);
+  assert.equal(describeSkew({ served, engineInstall: served }), undefined);
 });
 
 test("engine selector falls back to the bundled launcher when the served copy's engine is missing", async () => {

@@ -1,9 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { LAUNCHER as BUNDLED_LAUNCHER, SKILL_DIR as BUNDLED_SKILL_DIR } from "./engine.mjs";
-
-const LAUNCHER_NAME = process.platform === "win32" ? "impeccable.cmd" : "impeccable";
+import { SKILL_DIR as BUNDLED_SKILL_DIR, launcherIn } from "./engine.mjs";
 
 const OTHER_HARNESS_DIRS = [
   ".claude", ".codex", ".cursor", ".gemini", ".github", ".kiro", ".opencode", ".qoder",
@@ -30,7 +28,7 @@ export function readSkillVersion(skillMd) {
 function describe(skillDir, scope, extra = {}) {
   const skillMd = path.join(skillDir, "SKILL.md");
   if (!fs.existsSync(skillMd)) return undefined;
-  const launcher = path.join(skillDir, "scripts", LAUNCHER_NAME);
+  const launcher = launcherIn(skillDir);
   return {
     scope,
     skillDir,
@@ -40,6 +38,11 @@ function describe(skillDir, scope, extra = {}) {
     ...extra,
   };
 }
+
+export const BUNDLED_INSTALL = Object.freeze(describe(BUNDLED_SKILL_DIR, "plugin", { trusted: true }));
+
+export const mayRunLauncher = (install, { trustProjectInstalls }) =>
+  Boolean(install.launcher && (install.trusted || trustProjectInstalls));
 
 export function defaultStateDir(env = process.env, home = os.homedir()) {
   return env.OPENCLAW_STATE_DIR ? path.resolve(env.OPENCLAW_STATE_DIR) : path.join(home, ".openclaw");
@@ -61,10 +64,7 @@ export function discoverInstalls({ workspaceDir, home = os.homedir(), env = proc
     candidates.push(describe(path.join(home, ".agents", "skills", "impeccable"), "user", { trusted: true }));
   }
   candidates.push(describe(path.join(stateDir, "skills", "impeccable"), "managed", { trusted: true }));
-  candidates.push({
-    ...describe(BUNDLED_SKILL_DIR, "plugin", { trusted: true }),
-    launcher: BUNDLED_LAUNCHER,
-  });
+  candidates.push(BUNDLED_INSTALL);
   return candidates.filter(Boolean).filter((c, i, all) => all.findIndex((o) => o.skillDir === c.skillDir) === i);
 }
 
@@ -73,26 +73,24 @@ export function discoverOtherHarnessInstalls({ home = os.homedir() } = {}) {
 }
 
 export function selectInstall(installs, { mode = "auto", trustProjectInstalls = false } = {}) {
-  const plugin = installs.find((i) => i.scope === "plugin");
-  const served = installs[0] ?? plugin;
-  if (mode === "bundled") return { served, engine: plugin, reason: "install=bundled" };
-  const runnable = (i) => i.launcher && (i.trusted || trustProjectInstalls);
-  if (runnable(served)) {
-    return { served, engine: served, reason: served === plugin ? "plugin copy is served" : `${served.scope} install is served` };
+  const served = installs[0];
+  if (mode === "bundled") return { served, engineInstall: BUNDLED_INSTALL, reason: "install=bundled" };
+  if (mayRunLauncher(served, { trustProjectInstalls })) {
+    return { served, engineInstall: served, reason: served === BUNDLED_INSTALL ? "plugin copy is served" : `${served.scope} install is served` };
   }
   return {
     served,
-    engine: plugin,
+    engineInstall: BUNDLED_INSTALL,
     reason: served.launcher
       ? `${served.scope} launcher not run automatically (set trustProjectInstalls to allow)`
       : `${served.scope} install has no launcher`,
   };
 }
 
-export function describeSkew({ served, engine }) {
-  if (!served || !engine || served === engine) return undefined;
-  if (served.enginePin && engine.enginePin && served.enginePin !== engine.enginePin) {
-    return `the served skill (${served.scope}, Impeccable ${served.skillVersion ?? "?"}) pins engine ${served.enginePin}, but the gate and tools run engine ${engine.enginePin} from the ${engine.scope} copy`;
+export function describeSkew({ served, engineInstall }) {
+  if (!served || !engineInstall || served === engineInstall) return undefined;
+  if (served.enginePin && engineInstall.enginePin && served.enginePin !== engineInstall.enginePin) {
+    return `the served skill (${served.scope}, Impeccable ${served.skillVersion ?? "?"}) pins engine ${served.enginePin}, but the gate and tools run engine ${engineInstall.enginePin} from the ${engineInstall.scope} copy`;
   }
   return undefined;
 }
@@ -110,20 +108,12 @@ export function createInstallResolver({ config, env = process.env, home = os.hom
   };
 }
 
-export const BUNDLED_INSTALL = Object.freeze({
-  scope: "plugin",
-  skillDir: BUNDLED_SKILL_DIR,
-  launcher: BUNDLED_LAUNCHER,
-  trusted: true,
-});
-
 export function createEngineSelector({ config, probe, resolveFor = createInstallResolver({ config }) }) {
   return async function engineFor(workspaceDir, { force = false } = {}) {
     const selection = resolveFor(workspaceDir);
-    const primary = selection.engine?.launcher ? selection.engine : BUNDLED_INSTALL;
-    let install = primary;
+    let install = selection.engineInstall;
     let engine = await probe({ install, force });
-    if (!engine.ok && primary.launcher !== BUNDLED_INSTALL.launcher) {
+    if (!engine.ok && install !== BUNDLED_INSTALL) {
       const fallback = await probe({ install: BUNDLED_INSTALL, force });
       if (fallback.ok) {
         install = BUNDLED_INSTALL;

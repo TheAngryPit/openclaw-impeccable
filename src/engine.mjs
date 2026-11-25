@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const SKILL_DIR = path.join(packageRoot, "skills", "impeccable");
 const IS_WINDOWS = process.platform === "win32";
-export const LAUNCHER = path.join(SKILL_DIR, "scripts", IS_WINDOWS ? "impeccable.cmd" : "impeccable");
+export const launcherIn = (skillDir) => path.join(skillDir, "scripts", IS_WINDOWS ? "impeccable.cmd" : "impeccable");
+export const LAUNCHER = launcherIn(SKILL_DIR);
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const NEGATIVE_PROBE_TTL_MS = 60_000;
 
