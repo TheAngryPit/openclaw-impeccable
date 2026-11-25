@@ -1,6 +1,3 @@
-// `openclaw impeccable …`: operator commands. Installing the engine is the
-// only path in this plugin that downloads anything, and it is explicit.
-
 import path from "node:path";
 import { engineEnv, runEngine } from "./engine.mjs";
 import {
@@ -31,7 +28,6 @@ export function registerImpeccableCli(program, { config, probe, run = runEngine,
       const { installs, selection } = selectionFor(opts.project);
       const rows = [];
       for (const install of installs) {
-        // Never execute an untrusted project launcher, not even to probe it.
         const mayRun = install.launcher && (install.trusted || config.trustProjectInstalls);
         const engine = mayRun ? await probe({ install, force: true }) : { ok: false, reason: install.launcher ? "untrusted" : "no launcher" };
         rows.push({ ...install, engineReady: engine.ok, engineVersion: engine.version, probed: Boolean(mayRun) });

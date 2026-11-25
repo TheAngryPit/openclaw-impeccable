@@ -1,6 +1,3 @@
-// Resolved plugin settings. The manifest's configSchema validates input; this
-// fills defaults and clamps, so the runtime never sees an undefined knob.
-
 const clampInt = (value, min, max, fallback) =>
   Number.isInteger(value) ? Math.min(max, Math.max(min, value)) : fallback;
 

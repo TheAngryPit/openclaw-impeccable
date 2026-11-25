@@ -1,13 +1,4 @@
 #!/usr/bin/env node
-// Generate skills/impeccable from an upstream Impeccable checkout.
-//
-//   node scripts/sync-upstream.mjs <path-to-impeccable-checkout>
-//
-// This mirrors upstream's per-provider build (scripts/build.js and
-// scripts/lib/transformers/factory.js) for an "openclaw" provider, without
-// executing any upstream code: it only reads skill/ and writes this package's
-// skills/impeccable plus UPSTREAM.json. Re-run it to update the pinned
-// upstream, then review the diff.
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -18,31 +9,23 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, "..");
 const outDir = path.join(packageRoot, "skills", "impeccable");
 
-// ── OpenClaw provider profile ───────────────────────────────────────────────
-// Equivalent of an entry in upstream's PROVIDERS + PROVIDER_PLACEHOLDERS.
 export const OPENCLAW = {
-  // No upstream provider tag matches, so every harness-specific block
-  // (<claude-code>, <codex>, ...) is dropped and the generic text remains.
   providerTags: ["openclaw"],
   model: "the model",
   config_file: "AGENTS.md",
   ask_instruction:
     "Ask with the `ask_user` tool when it is available, or directly in chat if it is not, and wait for the answer before continuing.",
   command_prefix: "/",
-  // OpenClaw resolves {baseDir} against the skill directory, in SKILL.md and
-  // in every file the skill points the model at.
+  // OpenClaw resolves {baseDir} against the skill directory.
   scripts_path: "{baseDir}/scripts",
 };
 
-// Upstream's tag registry (scripts/lib/utils.js PROVIDER_BLOCK_TAGS). Known
-// tags that do not match are stripped; unknown tags are left untouched.
 const PROVIDER_BLOCK_TAGS = new Set([
   "agents", "antigravity", "claude", "claude-code", "codex", "cursor", "devin",
   "dsh", "gemini", "github", "grok", "hermes", "kiro", "opencode", "pi", "omp",
   "qoder", "rovo-dev", "trae", "trae-cn", "vibe", "veto",
 ]);
 
-// Upstream scripts/lib/skill-categories.js, used to render {{command_hint}}.
 const SKILL_CATEGORIES = {
   shape: "create", critique: "evaluate", audit: "evaluate", typeset: "refine",
   layout: "refine", colorize: "refine", animate: "refine", delight: "refine",
@@ -57,13 +40,11 @@ const IMPECCABLE_SUB_COMMANDS = [
   "delight", "distill", "document", "harden", "layout", "onboard", "optimize",
   "overdrive", "polish", "quieter", "shape", "typeset",
 ];
-// Per-project state that must never ship inside the distributable skill.
 const PER_PROJECT_SCRIPT_ARTIFACTS = new Set(["config.json"]);
 
 const DEGRADED_PREAMBLE = `<!-- Generated from skill/agents/ at build time. Do not edit; edit the agent definition. -->
 This harness has no subagent capability, so you are running this role inline. Step fully out of the work you just finished, adopt only this file's instructions for the pass, and disclose the substitution in one line of your closing message to the user, outside the output contract. Where the text below addresses a parent agent, you are both parties: produce the full output contract first, then act on it yourself.`;
 
-// Appended to SKILL.md: how this package differs from a bare skill install.
 const OPENCLAW_ADAPTER = `## OpenClaw
 
 This skill ships in the \`impeccable\` OpenClaw plugin. \`{baseDir}\` is this skill's directory: it resolves the launcher (\`{baseDir}/scripts/impeccable\`) and every reference path.
@@ -73,8 +54,6 @@ This skill ships in the \`impeccable\` OpenClaw plugin. \`{baseDir}\` is this sk
 - **Design gate:** unless the project ran \`/impeccable hooks off\`, findings for UI files you edit are appended to the \`write\`, \`edit\` or \`apply_patch\` result, and a final deep pass can ask for one more revision before you finish. Triage them as the findings' own instructions say; see [reference/hooks.md](reference/hooks.md) for the suppression ladder.
 - **Sub-agents:** where a playbook delegates a role (finish review, motion review, documenter, asset producer, manual-edit applier), use \`sessions_spawn\` when it is available and pass the role's file from [reference/degraded/](reference/degraded/) as the brief; otherwise run that file inline.
 - **Engine missing:** if a verb reports that engine setup needs network access, tell the user to run \`openclaw impeccable engine install\` once on the Gateway host, then follow the Launcher unavailable path above for this turn.`;
-
-// ── transforms (ports of upstream scripts/lib/utils.js) ────────────────────
 
 export function parseFrontmatter(content) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
@@ -177,8 +156,6 @@ function walkFiles(dir) {
   }
   return out;
 }
-
-// ── main ────────────────────────────────────────────────────────────────────
 
 export function build(upstreamRoot, target = outDir) {
   const skillSrc = path.join(upstreamRoot, "skill");

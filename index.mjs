@@ -1,14 +1,3 @@
-// Impeccable for OpenClaw: native plugin entry.
-//
-// - skills/impeccable: the upstream skill, generated for OpenClaw
-//   (scripts/sync-upstream.mjs); `/impeccable <command>` and `$impeccable`.
-// - impeccable_context / impeccable_detect: typed tools over the engine.
-// - coexistence: a regular Impeccable install that OpenClaw serves (installs.mjs)
-//   supplies the launcher, so skill text and engine version stay matched.
-// - design gate: per-edit pass as tool-result middleware, deep pass on
-//   before_agent_finalize (see src/gate.mjs).
-// - `openclaw impeccable …`: engine install, project hook switch, detector.
-
 import { registerImpeccableCli } from "./src/cli.mjs";
 import { resolveConfig } from "./src/config.mjs";
 import { createEngineProbe } from "./src/engine.mjs";
@@ -26,7 +15,6 @@ export default {
   register(api) {
     const config = resolveConfig(api.pluginConfig ?? {});
     const probe = createEngineProbe({ engineBin: config.engineBin });
-    // Which Impeccable copy runs: the one OpenClaw serves when allowed, else bundled.
     const engineFor = createEngineSelector({ config, probe });
     const logger = api.logger;
 

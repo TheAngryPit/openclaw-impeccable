@@ -1,9 +1,3 @@
-// Which files did a write / edit / apply_patch call touch?
-//
-// OpenClaw's file tools take workspace-relative or absolute paths. The
-// engine decides which of them are UI files; this module only reports what
-// was written, so deleted files are left out.
-
 import os from "node:os";
 import path from "node:path";
 
@@ -11,7 +5,6 @@ export const EDIT_TOOLS = Object.freeze(["write", "edit", "apply_patch"]);
 
 const PATCH_HEADER = /^\*\*\* (Add File|Update File|Delete File|Move to): (.+?)\s*$/gm;
 
-/** Paths written by an apply_patch `input` (Add, Update, and Move targets). */
 export function parseApplyPatchPaths(input) {
   if (typeof input !== "string") return [];
   const out = [];
@@ -20,7 +13,7 @@ export function parseApplyPatchPaths(input) {
     const [, kind, raw] = m;
     if (kind === "Delete File") continue;
     if (kind === "Move to" && lastUpdate >= 0) {
-      out[lastUpdate] = raw; // the file now lives at the move target
+      out[lastUpdate] = raw;
       lastUpdate = -1;
       continue;
     }
@@ -38,7 +31,6 @@ export function resolveToolPath(raw, cwd) {
   return path.resolve(cwd, p);
 }
 
-/** Absolute, de-duplicated paths an edit tool call wrote. */
 export function editedPaths(toolName, args, cwd) {
   if (!args || typeof args !== "object") return [];
   let raws = [];

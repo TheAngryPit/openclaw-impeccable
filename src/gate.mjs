@@ -1,17 +1,3 @@
-// The design gate: OpenClaw's native counterpart of upstream's hook wiring.
-//
-//   Claude Code / Codex           OpenClaw
-//   PostToolUse (Edit|Write)  ->  agent tool-result middleware on write/edit/apply_patch:
-//                                 the per-edit pass, findings appended to the tool result
-//                                 the model reads next (what Hermes' transform_tool_result does)
-//   Stop                      ->  before_agent_finalize: the deep pass; findings request
-//                                 one bounded revision instead of finishing
-//
-// The engine owns the policy, as in every other harness: which files are UI
-// files, whether the project enabled the hook (.impeccable/config.json), ignore
-// rules, and de-duplication between the two passes. Everything here fails open:
-// a missing engine, a timeout, or bad output never costs the user an edit or a reply.
-
 import { EDIT_TOOLS, editedPaths } from "./edits.mjs";
 import { engineEnv, parseHookOutput, runEngine } from "./engine.mjs";
 
@@ -26,11 +12,7 @@ function sessionIdentity({ sessionId, sessionKey, runId } = {}) {
   return sessionId || sessionKey || runId || undefined;
 }
 
-// `engineFor(workspaceDir)` resolves which Impeccable copy's launcher runs
-// (installs.mjs#createEngineSelector) and whether its engine is ready.
 export function createDesignGate({ config, engineFor, run = runEngine, logger, now = Date.now }) {
-  // Sessions whose run edited files since their last deep pass. The deep pass
-  // only runs for these, so ordinary chat turns never spawn the engine.
   const pending = new Map();
 
   function markPending(id, cwd) {
@@ -66,7 +48,6 @@ export function createDesignGate({ config, engineFor, run = runEngine, logger, n
     return parseHookOutput(r.stdout);
   }
 
-  /** AgentToolResultMiddleware: per-edit pass. */
   async function toolResultMiddleware(event, ctx = {}) {
     try {
       if (!config.gate.perEdit && !config.gate.onFinish) return;
@@ -115,7 +96,6 @@ export function createDesignGate({ config, engineFor, run = runEngine, logger, n
     }
   }
 
-  /** before_agent_finalize: deep pass, one bounded revision on findings. */
   async function beforeAgentFinalize(event, ctx = {}) {
     try {
       if (!config.gate.onFinish) return;

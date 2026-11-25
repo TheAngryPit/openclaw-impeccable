@@ -1,13 +1,3 @@
-// Bridge to the Impeccable engine through the vendored upstream launcher.
-//
-// The launcher (skills/impeccable/scripts/impeccable) owns binary resolution:
-// IMPECCABLE_BIN, a bundled binary, ~/.impeccable/bin, the checksum-verified
-// cache for the pinned engine version, then PATH. Run normally, it downloads
-// and verifies the pinned engine when none is found. Hooks and tools never
-// trigger that download: they probe first with IMPECCABLE_LAUNCHER_PROBE=1,
-// which makes the launcher resolve without fetching. Installing the engine is
-// an explicit operator step (`openclaw impeccable engine install`).
-
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -29,10 +19,6 @@ function readPinnedVersion() {
   }
 }
 
-/**
- * Engine environment. `install` is the Impeccable copy whose launcher runs
- * (see installs.mjs); the engine resolves references against its skill dir.
- */
 export function engineEnv({ engineBin, install, extra = {}, base = process.env } = {}) {
   const env = {
     ...base,
@@ -47,11 +33,6 @@ export function engineEnv({ engineBin, install, extra = {}, base = process.env }
   return env;
 }
 
-/**
- * Run `<launcher> <args...>` (the bundled launcher unless `launcher` names
- * another Impeccable copy's). Never rejects: failures come back as
- * { ok: false, code, stderr, error }.
- */
 export function runEngine(args, { cwd, input, env, timeoutMs = 30_000, signal, launcher = LAUNCHER } = {}) {
   return new Promise((resolve) => {
     const command = IS_WINDOWS ? process.env.ComSpec || "cmd.exe" : "sh";
@@ -116,13 +97,7 @@ function quoteCmdArg(arg) {
   return /[\s"&|<>^]/.test(arg) ? `"${String(arg).replace(/"/g, '""')}"` : arg;
 }
 
-/**
- * Resolve the engine without downloading it. Caches a positive result for
- * the process lifetime and a negative one briefly, so an install is picked up
- * without a Gateway restart.
- */
 export function createEngineProbe({ engineBin, run = runEngine, now = Date.now } = {}) {
-  // One cache entry per launcher: each Impeccable copy pins its own engine.
   const cached = new Map();
   const inflight = new Map();
   async function probe({ force = false, install } = {}) {
@@ -135,6 +110,7 @@ export function createEngineProbe({ engineBin, run = runEngine, now = Date.now }
         run(["engine-probe"], {
           launcher,
           cwd: install?.skillDir ?? SKILL_DIR,
+          // Without IMPECCABLE_LAUNCHER_PROBE the launcher downloads the pinned engine when none is found.
           env: { ...engineEnv({ engineBin, install }), IMPECCABLE_LAUNCHER_PROBE: "1" },
           timeoutMs: 5_000,
         })
@@ -155,7 +131,6 @@ export function createEngineProbe({ engineBin, run = runEngine, now = Date.now }
   return probe;
 }
 
-/** Parse the engine's hook stdout (Codex shapes): per-edit context or Stop decision. */
 export function parseHookOutput(stdout) {
   const text = String(stdout ?? "").trim();
   if (!text) return {};

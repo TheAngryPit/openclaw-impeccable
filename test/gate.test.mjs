@@ -93,7 +93,6 @@ test("finish: deep pass runs only after an edit, and findings request a bounded 
   );
   const gate = createDesignGate({ config: resolveConfig({ gate: { maxRevisions: 2 } }), engineFor: ready, run });
 
-  // A chat turn with no edits never spawns the engine.
   assert.equal(await gate.beforeAgentFinalize({ sessionId: "s1", stopHookActive: false }, {}), undefined);
   assert.equal(calls.length, 0);
 
@@ -113,7 +112,6 @@ test("finish: deep pass runs only after an edit, and findings request a bounded 
   assert.deepEqual(stop.event, { hook_event_name: "Stop", session_id: "s1", turn_id: "t9", cwd: "/proj", stop_hook_active: false });
   assert.equal(stop.timeoutMs, 30000);
 
-  // The pending mark is consumed: finishing again without new edits does not re-run.
   assert.equal(await gate.beforeAgentFinalize({ sessionId: "s1", stopHookActive: true }, {}), undefined);
   assert.equal(calls.filter((c) => c.event.hook_event_name === "Stop").length, 1);
 });

@@ -1,7 +1,3 @@
-// End to end through the real vendored launcher, with a fake engine binary
-// supplied via engineBin (IMPECCABLE_BIN). Proves the spawn path, env, stdin
-// hand-off and output parsing without network or the real engine.
-
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -10,8 +6,6 @@ import { test } from "node:test";
 import plugin from "../index.mjs";
 import { createEngineProbe, runEngine, engineEnv } from "../src/engine.mjs";
 
-// Hermetic: the host's own Impeccable installs (~/.agents/skills, ~/.impeccable)
-// must not change which launcher these tests exercise.
 process.env.HOME = fs.mkdtempSync(path.join(os.tmpdir(), "impeccable-it-home-"));
 delete process.env.OPENCLAW_STATE_DIR;
 

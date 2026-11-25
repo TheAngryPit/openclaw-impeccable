@@ -1,6 +1,3 @@
-// Coexistence with regular Impeccable installs (installs.mjs), including the
-// real plugin wiring with fake launchers that identify themselves.
-
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -17,7 +14,6 @@ import {
   selectInstall,
 } from "../src/installs.mjs";
 
-// A stand-in Impeccable copy whose launcher answers like the engine and says who it is.
 function fakeInstall(dir, { name, version = "4.12.0", enginePin = "0.1.30", frontmatter = "claude", ready = true } = {}) {
   fs.mkdirSync(path.join(dir, "scripts"), { recursive: true });
   const fm =

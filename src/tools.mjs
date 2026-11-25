@@ -1,7 +1,3 @@
-// Typed agent tools over the engine's read-side verbs. They let the skill load
-// project design context and run the detector without a shell approval, and
-// give Code Mode / Tool Search a stable JSON contract.
-
 import path from "node:path";
 import { engineEnv, runEngine } from "./engine.mjs";
 import { describeSkew } from "./installs.mjs";
@@ -19,7 +15,6 @@ function textResult(text, details) {
   return { content: [{ type: "text", text: clip(text) }], details };
 }
 
-/** Workspace-contained path, or an http(s) URL; anything else is rejected. */
 export function resolveTarget(raw, workspaceDir) {
   if (typeof raw !== "string" || !raw.trim()) throw new Error("empty target");
   const value = raw.trim();
@@ -33,7 +28,6 @@ export function resolveTarget(raw, workspaceDir) {
   return abs;
 }
 
-/** One line naming the Impeccable copy in use, plus any skill/engine version skew. */
 export function installNote(engine) {
   const served = engine.selection?.served;
   const parts = [];
@@ -45,7 +39,6 @@ export function installNote(engine) {
   return parts.join(" ");
 }
 
-// `engineFor(workspaceDir)`: installs.mjs#createEngineSelector.
 export function createTools({ config, engineFor, run = runEngine }) {
   const env = (engine) => engineEnv({ engineBin: config.engineBin, install: engine.install });
   const runWith = (engine, args, opts) => run(args, { ...opts, launcher: engine.install?.launcher, env: env(engine) });
