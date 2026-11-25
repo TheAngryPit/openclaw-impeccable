@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,17 +6,8 @@ const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 export const SKILL_DIR = path.join(packageRoot, "skills", "impeccable");
 const IS_WINDOWS = process.platform === "win32";
 export const LAUNCHER = path.join(SKILL_DIR, "scripts", IS_WINDOWS ? "impeccable.cmd" : "impeccable");
-export const PINNED_ENGINE_VERSION = readPinnedVersion();
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const NEGATIVE_PROBE_TTL_MS = 60_000;
-
-function readPinnedVersion() {
-  try {
-    return fs.readFileSync(path.join(SKILL_DIR, "scripts", "VERSION"), "utf8").trim();
-  } catch {
-    return "";
-  }
-}
 
 export function engineEnv({ engineBin, install, extra = {}, base = process.env } = {}) {
   const env = {
@@ -29,11 +19,10 @@ export function engineEnv({ engineBin, install, extra = {}, base = process.env }
   delete env.IMPECCABLE_LAUNCHER_PROBE;
   delete env.IMPECCABLE_SELF; // the launcher exports its own path
   if (engineBin) env.IMPECCABLE_BIN = engineBin;
-  for (const [k, v] of Object.entries(extra)) if (v === undefined) delete env[k];
   return env;
 }
 
-export function runEngine(args, { cwd, input, env, timeoutMs = 30_000, signal, launcher = LAUNCHER } = {}) {
+export function runEngine(args, { cwd, input, env, timeoutMs = 30_000, launcher = LAUNCHER } = {}) {
   return new Promise((resolve) => {
     const command = IS_WINDOWS ? process.env.ComSpec || "cmd.exe" : "sh";
     const argv = IS_WINDOWS
@@ -48,7 +37,6 @@ export function runEngine(args, { cwd, input, env, timeoutMs = 30_000, signal, l
         stdio: ["pipe", "pipe", "pipe"],
         windowsHide: true,
         windowsVerbatimArguments: IS_WINDOWS,
-        signal,
       });
     } catch (error) {
       resolve({ ok: false, code: null, stdout: "", stderr: "", error: String(error?.message ?? error) });
@@ -58,14 +46,13 @@ export function runEngine(args, { cwd, input, env, timeoutMs = 30_000, signal, l
     const err = [];
     let outBytes = 0;
     let errBytes = 0;
-    let truncated = false;
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill("SIGKILL");
     }, timeoutMs);
     child.stdout.on("data", (chunk) => {
-      if (outBytes >= MAX_OUTPUT_BYTES) return void (truncated = true);
+      if (outBytes >= MAX_OUTPUT_BYTES) return;
       out.push(chunk);
       outBytes += chunk.length;
     });
@@ -86,7 +73,7 @@ export function runEngine(args, { cwd, input, env, timeoutMs = 30_000, signal, l
         resolve({ ok: false, code, stdout, stderr, error: `timed out after ${timeoutMs} ms` });
         return;
       }
-      resolve({ ok: code === 0, code, stdout, stderr, truncated });
+      resolve({ ok: code === 0, code, stdout, stderr });
     });
     child.stdin.on("error", () => {}); // the engine may exit before reading stdin
     child.stdin.end(input ?? "");

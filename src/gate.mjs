@@ -135,5 +135,5 @@ export function createDesignGate({ config, engineFor, run = runEngine, logger, n
     }
   }
 
-  return { toolResultMiddleware, beforeAgentFinalize, _pending: pending };
+  return { toolResultMiddleware, beforeAgentFinalize };
 }

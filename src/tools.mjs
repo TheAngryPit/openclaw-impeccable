@@ -136,7 +136,7 @@ export function createTools({ config, engineFor, run = runEngine }) {
       let findings = null;
       try {
         const parsed = JSON.parse(r.stdout);
-        findings = Array.isArray(parsed) ? parsed.length : Array.isArray(parsed?.findings) ? parsed.findings.length : null;
+        findings = Array.isArray(parsed) ? parsed.length : null;
       } catch {}
       const failed = r.code !== 0 && r.code !== 2;
       const text = failed

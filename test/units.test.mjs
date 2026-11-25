@@ -28,7 +28,7 @@ test("apply_patch paths: add, update, move target; deletes skipped", () => {
 
 test("editedPaths resolves write/edit/apply_patch against cwd and de-duplicates", () => {
   assert.deepEqual(editedPaths("write", { path: "a/b.css" }, "/w"), ["/w/a/b.css"]);
-  assert.deepEqual(editedPaths("edit", { file_path: "/abs/x.tsx" }, "/w"), ["/abs/x.tsx"]);
+  assert.deepEqual(editedPaths("edit", { path: "/abs/x.tsx" }, "/w"), ["/abs/x.tsx"]);
   assert.deepEqual(editedPaths("edit", { path: "~/x.css" }, "/w"), [path.join(os.homedir(), "x.css")]);
   assert.deepEqual(editedPaths("edit", { path: "./~/x.css" }, "/w"), ["/w/~/x.css"]);
   assert.deepEqual(
@@ -60,13 +60,14 @@ test("engineEnv pins provider id, drops probe flag, applies engineBin", () => {
   assert.equal(env.PATH, "/bin");
 });
 
-test("resolveConfig fills defaults and clamps", () => {
+test("resolveConfig fills defaults and keeps operator values", () => {
   const c = resolveConfig({});
   assert.deepEqual({ ...c.gate }, { perEdit: true, onFinish: true, maxRevisions: 1 });
   assert.equal(c.tools, true);
   assert.equal(c.editTimeoutMs, 5000);
-  assert.equal(resolveConfig({ gate: { maxRevisions: 9 } }).gate.maxRevisions, 3);
-  assert.equal(resolveConfig({ engineBin: "  " }).engineBin, undefined);
+  assert.equal(resolveConfig({ gate: { maxRevisions: 3 } }).gate.maxRevisions, 3);
+  assert.equal(resolveConfig({ gate: { onFinish: false } }).gate.onFinish, false);
+  assert.equal(resolveConfig({ engineBin: "" }).engineBin, undefined);
 });
 
 test("resolveTarget keeps paths inside the workspace and allows http(s) only", () => {

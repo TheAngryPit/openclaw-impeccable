@@ -34,8 +34,8 @@ export function resolveToolPath(raw, cwd) {
 export function editedPaths(toolName, args, cwd) {
   if (!args || typeof args !== "object") return [];
   let raws = [];
-  if (toolName === "apply_patch") raws = parseApplyPatchPaths(args.input ?? args.patch ?? args.command);
-  else if (toolName === "write" || toolName === "edit") raws = [args.path ?? args.file_path];
+  if (toolName === "apply_patch") raws = parseApplyPatchPaths(args.input);
+  else if (toolName === "write" || toolName === "edit") raws = [args.path];
   const out = [];
   for (const raw of raws) {
     const abs = resolveToolPath(raw, cwd);

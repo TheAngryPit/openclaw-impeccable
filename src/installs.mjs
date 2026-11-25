@@ -130,6 +130,6 @@ export function createEngineSelector({ config, probe, resolveFor = createInstall
         engine = fallback;
       }
     }
-    return { ok: engine.ok, version: engine.version, reason: engine.reason, install, selection };
+    return { ok: engine.ok, version: engine.version, install, selection };
   };
 }
