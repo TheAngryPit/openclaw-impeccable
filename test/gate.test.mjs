@@ -87,15 +87,21 @@ test("apply_patch sends one event per written file", async () => {
   );
 });
 
-test("finish: deep pass runs only after an edit, and findings request a bounded revision", async () => {
-  const { run, calls } = fakeRun((e) =>
+const blockingStop = () =>
+  fakeRun((e) =>
     e.hook_event_name === "Stop" ? JSON.stringify({ decision: "block", reason: "2 design findings: low-contrast, nested-cards" }) : "",
   );
-  const gate = createDesignGate({ config: resolveConfig({ gate: { maxRevisions: 2 } }), engineFor: ready, run });
 
+test("finish: a run without edits never starts the engine", async () => {
+  const { run, calls } = blockingStop();
+  const gate = createDesignGate({ config: resolveConfig({}), engineFor: ready, run });
   assert.equal(await gate.beforeAgentFinalize({ sessionId: "s1", stopHookActive: false }, {}), undefined);
   assert.equal(calls.length, 0);
+});
 
+test("finish: findings after an edit request a bounded revision with the Stop event the engine expects", async () => {
+  const { run, calls } = blockingStop();
+  const gate = createDesignGate({ config: resolveConfig({ gate: { maxRevisions: 2 } }), engineFor: ready, run });
   await gate.toolResultMiddleware(toolEvent(), { sessionId: "s1" });
   const decision = await gate.beforeAgentFinalize(
     { sessionId: "s1", turnId: "t9", cwd: "/proj", stopHookActive: false },
@@ -111,21 +117,29 @@ test("finish: deep pass runs only after an edit, and findings request a bounded 
   const stop = calls.find((c) => c.event.hook_event_name === "Stop");
   assert.deepEqual(stop.event, { hook_event_name: "Stop", session_id: "s1", turn_id: "t9", cwd: "/proj", stop_hook_active: false });
   assert.equal(stop.timeoutMs, 30000);
+});
 
+test("finish: finishing again without new edits does not re-run the deep pass", async () => {
+  const { run, calls } = blockingStop();
+  const gate = createDesignGate({ config: resolveConfig({}), engineFor: ready, run });
+  await gate.toolResultMiddleware(toolEvent(), { sessionId: "s1" });
+  await gate.beforeAgentFinalize({ sessionId: "s1", cwd: "/proj", stopHookActive: false }, {});
   assert.equal(await gate.beforeAgentFinalize({ sessionId: "s1", stopHookActive: true }, {}), undefined);
   assert.equal(calls.filter((c) => c.event.hook_event_name === "Stop").length, 1);
 });
 
-test("finish: a clean deep pass lets the run finish; onFinish=false disables it", async () => {
+test("finish: a clean deep pass lets the run finish", async () => {
   const { run } = fakeRun(() => "");
   const gate = createDesignGate({ config: resolveConfig({}), engineFor: ready, run });
   await gate.toolResultMiddleware(toolEvent(), { sessionId: "s2" });
   assert.equal(await gate.beforeAgentFinalize({ sessionId: "s2", cwd: "/proj" }, {}), undefined);
+});
 
-  const { run: run2, calls } = fakeRun(() => JSON.stringify({ decision: "block", reason: "x" }));
-  const off = createDesignGate({ config: resolveConfig({ gate: { onFinish: false } }), engineFor: ready, run: run2 });
-  await off.toolResultMiddleware(toolEvent(), { sessionId: "s3" });
-  assert.equal(await off.beforeAgentFinalize({ sessionId: "s3", cwd: "/proj" }, {}), undefined);
+test("finish: onFinish=false never runs the deep pass", async () => {
+  const { run, calls } = blockingStop();
+  const gate = createDesignGate({ config: resolveConfig({ gate: { onFinish: false } }), engineFor: ready, run });
+  await gate.toolResultMiddleware(toolEvent(), { sessionId: "s3" });
+  assert.equal(await gate.beforeAgentFinalize({ sessionId: "s3", cwd: "/proj" }, {}), undefined);
   assert.equal(calls.filter((c) => c.event.hook_event_name === "Stop").length, 0);
 });
 

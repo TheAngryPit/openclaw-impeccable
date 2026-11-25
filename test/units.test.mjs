@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -6,7 +7,7 @@ import { resolveConfig } from "../src/config.mjs";
 import { editedPaths, parseApplyPatchPaths } from "../src/edits.mjs";
 import { engineEnv, parseHookOutput } from "../src/engine.mjs";
 import { resolveTarget } from "../src/tools.mjs";
-import { commandHint, compileProviderBlocks, replacePlaceholders, stripRuleMarkers } from "../scripts/sync-upstream.mjs";
+import { assertNoUpstreamMarkup, commandHint, compileProviderBlocks, replacePlaceholders, stripRuleMarkers } from "../scripts/sync-upstream.mjs";
 
 test("apply_patch paths: add, update, move target; deletes skipped", () => {
   const input = [
@@ -90,4 +91,14 @@ test("sync transforms: provider blocks, rule markers, placeholders", () => {
     commandHint({ shape: {}, audit: {}, critique: {}, polish: {}, init: {} }),
     "shape · audit|critique · polish · init",
   );
+});
+
+test("sync rejects a harness block it does not know, and accepts known markup", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "impeccable-sync-"));
+  fs.writeFileSync(path.join(dir, "ok.md"), "Intro\n<picture>\n<img src=a>\n</picture>\nEnd\n");
+  assert.doesNotThrow(() => assertNoUpstreamMarkup(dir));
+  fs.writeFileSync(path.join(dir, "new-harness.md"), "Intro\n<zed>\nZed-only steps\n</zed>\nEnd\n");
+  assert.throws(() => assertNoUpstreamMarkup(dir), /new-harness\.md: <zed> block survived/);
+  fs.writeFileSync(path.join(dir, "new-harness.md"), "Run {{scripts_path}}/impeccable\n");
+  assert.throws(() => assertNoUpstreamMarkup(dir), /unresolved \{\{placeholder\}\}/);
 });

@@ -25,6 +25,8 @@ const PROVIDER_BLOCK_TAGS = new Set([
   "dsh", "gemini", "github", "grok", "hermes", "kiro", "opencode", "pi", "omp",
   "qoder", "rovo-dev", "trae", "trae-cn", "vibe", "veto",
 ]);
+const KNOWN_MARKUP_BLOCKS = new Set(["picture"]);
+const STANDALONE_BLOCK = /(?:^|\n)[ \t]*<([a-z][a-z0-9-]*)>[ \t]*\r?\n[\s\S]*?\r?\n[ \t]*<\/\1>[ \t]*(?=\r?\n|$)/g;
 
 const SKILL_CATEGORIES = {
   shape: "create", critique: "evaluate", audit: "evaluate", typeset: "refine",
@@ -157,6 +159,21 @@ function walkFiles(dir) {
   return out;
 }
 
+export function assertNoUpstreamMarkup(target) {
+  const problems = [];
+  for (const file of walkFiles(target).filter((f) => f.endsWith(".md"))) {
+    const text = fs.readFileSync(file, "utf8");
+    const rel = path.relative(target, file);
+    if (/\{\{[a-z_]+\}\}/.test(text)) problems.push(`${rel}: unresolved {{placeholder}}`);
+    for (const [, tag] of text.matchAll(STANDALONE_BLOCK)) {
+      if (!KNOWN_MARKUP_BLOCKS.has(tag)) {
+        problems.push(`${rel}: <${tag}> block survived; add it to PROVIDER_BLOCK_TAGS if it is a harness, or KNOWN_MARKUP_BLOCKS if it is markup`);
+      }
+    }
+  }
+  if (problems.length) throw new Error(`generated skill is not clean:\n${problems.join("\n")}`);
+}
+
 export function build(upstreamRoot, target = outDir) {
   const skillSrc = path.join(upstreamRoot, "skill");
   const srcMd = path.join(skillSrc, "SKILL.src.md");
@@ -226,12 +243,7 @@ export function build(upstreamRoot, target = outDir) {
   };
   writeFile(path.join(packageRoot, "UPSTREAM.json"), `${JSON.stringify(upstream, null, 2)}\n`);
 
-  const leftovers = walkFiles(target)
-    .filter((f) => f.endsWith(".md"))
-    .filter((f) => /\{\{[a-z_]+\}\}/.test(fs.readFileSync(f, "utf8")));
-  if (leftovers.length) {
-    throw new Error(`unresolved {{placeholders}} in: ${leftovers.map((f) => path.relative(target, f)).join(", ")}`);
-  }
+  assertNoUpstreamMarkup(target);
   return { refs, degraded, scripts, upstream };
 }
 
