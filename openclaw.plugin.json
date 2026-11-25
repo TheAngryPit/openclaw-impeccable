@@ -64,7 +64,7 @@
           "onFinish": {
             "type": "boolean",
             "default": true,
-            "description": "Run the deep pass before a run that edited files finishes, and request a revision on findings (upstream Stop). Needs hooks.allowConversationAccess."
+            "description": "Run the deep pass before a run that edited files finishes, and request a revision on findings (upstream Stop). Conversation access is granted when you approve the plugin's capabilities."
           },
           "maxRevisions": {
             "type": "integer",
