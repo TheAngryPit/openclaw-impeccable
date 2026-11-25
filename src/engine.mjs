@@ -171,7 +171,9 @@ export function parseHookOutput(stdout) {
       ? parsed.hookSpecificOutput.additionalContext
       : typeof parsed.additionalContext === "string"
         ? parsed.additionalContext
-        : undefined;
+        : typeof parsed.additional_context === "string"
+          ? parsed.additional_context
+          : undefined;
   const block = parsed.decision === "block" && typeof parsed.reason === "string" ? parsed.reason : undefined;
   return { additionalContext: additionalContext?.trim() || undefined, block: block?.trim() || undefined };
 }

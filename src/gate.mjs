@@ -20,7 +20,7 @@ const PENDING_MAX = 512;
 const PENDING_TTL_MS = 6 * 60 * 60 * 1000;
 
 export const REVISE_INSTRUCTION =
-  "Address the Impeccable design findings above in the files you changed, or waive a finding with its inline `impeccable-disable` comment and a one-line reason, then finish.";
+  "Triage the Impeccable design findings above as their instructions say (fix real problems; persist the narrowest ignore for a confident false positive and disclose it), then finish and state what you fixed, suppressed, or left standing.";
 
 function sessionIdentity({ sessionId, sessionKey, runId } = {}) {
   return sessionId || sessionKey || runId || undefined;
@@ -49,12 +49,17 @@ export function createDesignGate({ config, engineFor, run = runEngine, logger, n
     return undefined;
   }
 
-  async function hook(engine, event, cwd, timeoutMs) {
+  // With the deep pass on, the engine defers non-immediate rules from the
+  // per-edit pass to Stop (Codex contract). Without it, per-edit must report
+  // the full rule set, as upstream does for Cursor, which has no deep pass.
+  const perEditHarness = config.gate.onFinish ? "codex" : "cursor";
+
+  async function hook(engine, event, cwd, timeoutMs, harness = "codex") {
     const r = await run(["hook"], {
       launcher: engine.install?.launcher,
       cwd,
       input: JSON.stringify(event),
-      env: engineEnv({ engineBin: config.engineBin, install: engine.install, extra: { IMPECCABLE_HOOK_HARNESS: "codex" } }),
+      env: engineEnv({ engineBin: config.engineBin, install: engine.install, extra: { IMPECCABLE_HOOK_HARNESS: harness } }),
       timeoutMs,
     });
     if (r.error) logger?.debug?.(`impeccable: hook ${event.hook_event_name} skipped: ${r.error}`);
@@ -92,6 +97,7 @@ export function createDesignGate({ config, engineFor, run = runEngine, logger, n
           },
           cwd,
           config.editTimeoutMs,
+          perEditHarness,
         );
         if (out.additionalContext) texts.push(out.additionalContext);
       }

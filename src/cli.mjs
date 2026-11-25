@@ -75,7 +75,7 @@ export function registerImpeccableCli(program, { config, probe, run = runEngine,
         for (const o of others) print(`  ${o.scope.padEnd(20)} skill ${o.skillVersion ?? "?"}  engine pin ${o.enginePin ?? "?"}`);
       }
       print(`gate      per-edit ${config.gate.perEdit ? "on" : "off"} · on-finish ${config.gate.onFinish ? "on" : "off"} · max revisions ${config.gate.maxRevisions}`);
-      print("          projects opt in with `/impeccable hooks on` (shared with every harness via .impeccable/config.json)");
+      print("          on by default in every project; `/impeccable hooks off` turns it off for one project (.impeccable/config.json, shared with every harness)");
       if (!rows.find((r) => r.skillDir === selection.engine.skillDir)?.engineReady) {
         print("          engine missing: run `openclaw impeccable engine install`");
       }
@@ -104,7 +104,7 @@ export function registerImpeccableCli(program, { config, probe, run = runEngine,
 
   root
     .command("hooks")
-    .description("Turn the design gate on or off for one project (writes its .impeccable/config.json)")
+    .description("Turn the design gate off or back on for one project (writes its .impeccable/config.json)")
     .argument("<action>", "on | off | status | reset | ignore-rule | ignore-file | ignore-value")
     .argument("[args...]", "action arguments")
     .option("--project <dir>", "Project directory", process.cwd())

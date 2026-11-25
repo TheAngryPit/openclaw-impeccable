@@ -146,3 +146,21 @@ test("per-edit off still arms the deep pass", async () => {
   assert.equal(calls.length, 0);
   assert.equal((await gate.beforeAgentFinalize({ sessionId: "s4", cwd: "/proj" }, {}))?.action, "revise");
 });
+
+test("per-edit harness: codex (tiered, deep pass on) unless onFinish is off, then cursor (full rule set)", async () => {
+  const { run, calls } = fakeRun(() => "");
+  const on = createDesignGate({ config: resolveConfig({}), engineFor: ready, run });
+  await on.toolResultMiddleware(toolEvent(), { sessionId: "h1" });
+  assert.equal(calls.at(-1).env.IMPECCABLE_HOOK_HARNESS, "codex");
+
+  const off = createDesignGate({ config: resolveConfig({ gate: { onFinish: false } }), engineFor: ready, run });
+  await off.toolResultMiddleware(toolEvent(), { sessionId: "h2" });
+  assert.equal(calls.at(-1).env.IMPECCABLE_HOOK_HARNESS, "cursor");
+});
+
+test("per-edit: Cursor-shaped engine output is appended too", async () => {
+  const { run } = fakeRun(() => JSON.stringify({ additional_context: "[impeccable] side-tab at L1" }));
+  const gate = createDesignGate({ config: resolveConfig({ gate: { onFinish: false } }), engineFor: ready, run });
+  const out = await gate.toolResultMiddleware(toolEvent(), { sessionId: "h3" });
+  assert.match(out.result.content[1].text, /side-tab/);
+});

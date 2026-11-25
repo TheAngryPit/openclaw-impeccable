@@ -27,8 +27,11 @@ plugin uses OpenClaw's native surfaces for each part instead.
 | Launcher + pinned checksums | ships in the skill | Vendored unchanged. The plugin only calls it |
 
 The engine stays the single source of policy, as upstream intends. It decides
-which files are UI files, whether a project has opted in, which ignores apply, and
-how to de-duplicate the two passes. The plugin passes it Codex-shaped events
+which files are UI files, whether a project turned the hook off, which ignores apply, and
+how to de-duplicate the two passes. With the finish-time pass on, the per-edit pass reports only the engine's
+immediate-tier rules, and the rest (side-tab, overused fonts, …) come at finish, as in
+Claude Code and Codex. With `gate.onFinish: false`, the per-edit pass reports the full
+rule set, as upstream does for Cursor. The plugin passes it Codex-shaped events
 (`IMPECCABLE_HOOK_HARNESS=codex`, `IMPECCABLE_PROVIDER_ID=openclaw`).
 
 ## Install
@@ -51,18 +54,24 @@ No config edits are required.
 - `/impeccable` with no arguments shows the context-aware menu.
 - `/impeccable init` writes PRODUCT.md, and `/impeccable document` writes DESIGN.md.
 - `/impeccable critique landing page`, `/impeccable polish src/app/settings`, and so on.
-- `/impeccable hooks on` turns the design gate on **for that project** by writing its
-  `.impeccable/config.json`. The gate never runs in a project that hasn't opted in.
-  From a shell: `openclaw impeccable hooks on --project <dir>`.
+- The design gate is **on by default** in every project, matching upstream. Turn it off for
+  one project with `/impeccable hooks off`, which writes `hook.enabled: false` to that
+  project's `.impeccable/config.json`. `/impeccable hooks on` turns it back on. From a
+  shell: `openclaw impeccable hooks off --project <dir>`. Set `hook.quiet: true` in that
+  config to silence the "no issues found" notes. Set `gate.perEdit`/`gate.onFinish` to
+  `false` to turn it off everywhere.
+- Like every Impeccable harness, the engine keeps a per-session cache at
+  `.impeccable/hook.cache.json` in projects where UI files are edited. Add it to the
+  project's `.gitignore`, as upstream does. `.impeccable/config.json` is meant to be
+  committed; `config.local.json` is not.
 
 ## Coexisting with a regular Impeccable install
 
 People often have Impeccable installed for other harnesses already. Most of that is
 shared by design:
 
-- **Project files.** PRODUCT.md, DESIGN.md and `.impeccable/` are harness-neutral. If
-  `/impeccable hooks on` was run from Claude Code, the OpenClaw gate is on for that
-  project too.
+- **Project files.** PRODUCT.md, DESIGN.md and `.impeccable/` are harness-neutral. If a project
+  turned the hook off from another harness, it's off in OpenClaw too, and the same goes for ignores.
 - **Engine.** The launcher reuses `~/.impeccable/bin` and an `impeccable` on PATH.
 - **No double checks.** OpenClaw's Codex runtime ignores Codex `hooks.json`. The
   Claude CLI backend loads only user-level settings, and that runs Claude's own loop,

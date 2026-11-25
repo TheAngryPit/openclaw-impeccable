@@ -54,7 +54,7 @@
       "gate": {
         "type": "object",
         "additionalProperties": false,
-        "description": "The design gate runs the engine's hook after UI edits. A project opts in with `/impeccable hooks on`; these switches only bound what the plugin may do.",
+        "description": "The design gate runs the engine's hook after UI edits. It is on by default in every project, as in upstream; a project turns it off with `/impeccable hooks off`.",
         "properties": {
           "perEdit": {
             "type": "boolean",
