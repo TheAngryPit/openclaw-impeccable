@@ -1,4 +1,5 @@
-import { EDIT_TOOLS, editedPaths } from "./edits.mjs";
+import path from "node:path";
+import { EDIT_TOOLS, editedPaths, parseApplyPatchPaths } from "./edits.mjs";
 import { engineEnv, parseHookOutput, runEngine } from "./engine.mjs";
 
 const TOOL_EVENT_NAME = { write: "Write", edit: "Edit", apply_patch: "Edit" };
@@ -52,7 +53,23 @@ export function createDesignGate({ config, engineFor, run = runEngine, logger, n
     try {
       if (!config.gate.perEdit && !config.gate.onFinish) return;
       if (event.isError || !EDIT_TOOLS.includes(event.toolName)) return;
-      const cwd = event.cwd?.trim();
+      // event.cwd is set by the embedded (Codex) runner. The native OpenClaw
+      // tool-search runtime omits it because write/edit/apply_patch result
+      // schemas have no cwd field. Derive it from the workspace dir or file path.
+      let cwd = event.cwd?.trim();
+      if (!cwd) {
+        cwd = ctx.workspaceDir?.trim();
+        if (!cwd) {
+          if (event.toolName === "write" || event.toolName === "edit") {
+            if (typeof event.args?.path === "string" && path.isAbsolute(event.args.path))
+              cwd = path.dirname(event.args.path);
+          } else if (event.toolName === "apply_patch") {
+            for (const raw of parseApplyPatchPaths(event.args?.input ?? "")) {
+              if (path.isAbsolute(raw)) { cwd = path.dirname(raw); break; }
+            }
+          }
+        }
+      }
       if (!cwd) return;
       const paths = editedPaths(event.toolName, event.args, cwd);
       if (paths.length === 0) return;

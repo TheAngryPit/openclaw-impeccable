@@ -159,6 +159,48 @@ test("per-edit off still arms the deep pass", async () => {
   assert.equal((await gate.beforeAgentFinalize({ sessionId: "s4", cwd: "/proj" }, {}))?.action, "revise");
 });
 
+test("native OpenClaw: cwd derived from absolute args.path when event.cwd is absent", async () => {
+  const { run, calls } = fakeRun((e) =>
+    e.hook_event_name === "PostToolUse"
+      ? JSON.stringify({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "[impeccable] low-contrast at App.tsx:1" } })
+      : "",
+  );
+  const gate = createDesignGate({ config: resolveConfig({}), engineFor: ready, run });
+  // No event.cwd; absolute args.path; native OpenClaw shape
+  const out = await gate.toolResultMiddleware(
+    { toolCallId: "t9", toolName: "write", args: { path: "/proj/src/App.tsx" }, result: { content: [] } },
+    { sessionId: "native1" },
+  );
+  assert.ok(out, "result was modified");
+  assert.match(out.result.content[0].text, /low-contrast/);
+  assert.equal(calls[0].event.cwd, "/proj/src");
+});
+
+test("native OpenClaw: session marked via args.path cwd so deep pass fires", async () => {
+  const { run } = fakeRun((e) =>
+    e.hook_event_name === "Stop" ? JSON.stringify({ decision: "block", reason: "x" }) : "",
+  );
+  const gate = createDesignGate({ config: resolveConfig({}), engineFor: ready, run });
+  // toolResultMiddleware with no event.cwd must still markEdited
+  await gate.toolResultMiddleware(
+    { toolCallId: "ta", toolName: "write", args: { path: "/proj/src/App.tsx" }, result: { content: [] } },
+    { sessionId: "native2" },
+  );
+  const d = await gate.beforeAgentFinalize({ sessionId: "native2", stopHookActive: false }, {});
+  assert.equal(d?.action, "revise");
+});
+
+test("native OpenClaw: relative args.path without cwd fails open (returns undefined)", async () => {
+  const { run, calls } = fakeRun(() => "");
+  const gate = createDesignGate({ config: resolveConfig({}), engineFor: ready, run });
+  const out = await gate.toolResultMiddleware(
+    { toolCallId: "tb", toolName: "write", args: { path: "src/App.tsx" }, result: { content: [] } },
+    { sessionId: "native3" },
+  );
+  assert.equal(out, undefined);
+  assert.equal(calls.length, 0);
+});
+
 test("per-edit harness: codex (tiered, deep pass on) unless onFinish is off, then cursor (full rule set)", async () => {
   const { run, calls } = fakeRun(() => "");
   const on = createDesignGate({ config: resolveConfig({}), engineFor: ready, run });
