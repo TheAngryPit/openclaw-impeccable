@@ -5,7 +5,7 @@ argument-hint: "[shape · audit|critique · animate|bolder|colorize|delight|layo
 user-invocable: true
 license: Apache 2.0
 homepage: https://impeccable.style
-version: 4.10.0
+version: 4.11.1
 ---
 
 

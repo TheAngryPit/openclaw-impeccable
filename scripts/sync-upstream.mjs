@@ -23,7 +23,7 @@ export const OPENCLAW = {
 const PROVIDER_BLOCK_TAGS = new Set([
   "agents", "antigravity", "claude", "claude-code", "codex", "cursor", "devin",
   "dsh", "gemini", "github", "grok", "hermes", "kiro", "opencode", "pi", "omp",
-  "qoder", "rovo-dev", "trae", "trae-cn", "vibe", "veto",
+  "qoder", "rovo-dev", "trae", "trae-cn", "vibe", "veto", "muse",
 ]);
 const KNOWN_MARKUP_BLOCKS = new Set(["picture"]);
 const STANDALONE_BLOCK = /(?:^|\n)[ \t]*<([a-z][a-z0-9-]*)>[ \t]*\r?\n[\s\S]*?\r?\n[ \t]*<\/\1>[ \t]*(?=\r?\n|$)/g;

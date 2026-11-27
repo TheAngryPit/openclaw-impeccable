@@ -54,7 +54,7 @@ test("readSkillVersion reads Claude and Codex frontmatter styles", () => {
   fakeInstall(path.join(root, "b"), { version: "4.12.1", frontmatter: "codex" });
   assert.equal(readSkillVersion(path.join(root, "a", "SKILL.md")), "4.11.0");
   assert.equal(readSkillVersion(path.join(root, "b", "SKILL.md")), "4.12.1");
-  assert.equal(readSkillVersion(path.join(SKILL_DIR, "SKILL.md")), "4.10.0");
+  assert.equal(readSkillVersion(path.join(SKILL_DIR, "SKILL.md")), "4.11.1");
 });
 
 test("discoverInstalls follows OpenClaw skill precedence and ends with the plugin copy", () => {
