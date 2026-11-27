@@ -38,7 +38,7 @@ rule set, as upstream does for Cursor. The plugin passes it Codex-shaped events
 
 ```bash
 openclaw plugins install clawhub:@theangrypit/openclaw-impeccable --accept-capabilities
-openclaw impeccable engine install      # one-time; downloads + sha256-verifies engine 0.1.27 into ~/.impeccable
+openclaw impeccable engine install      # one-time; downloads and SHA-256 verifies the pinned engine into ~/.impeccable
 openclaw impeccable status
 ```
 
